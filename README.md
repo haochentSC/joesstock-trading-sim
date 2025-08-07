@@ -81,6 +81,3 @@ build/                     # Compiled classes
 2. After logging in, use `LoggedinHome.html` to search for quotes and place buy orders.
 3. Visit `PortfolioPage.html` to review holdings and execute additional buy or sell actions.
 4. Click **Logout** to terminate the session.
-
----
-This project is intended for educational purposes and does not represent financial advice.
