@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>PorftolioPage</title>
+<style>
+	body{
+	font-family: Arial, sans-serif;
+  	display: flex;
+  	flex-direction: column;
+  	align-items: center;
+  	line-height: 1.5;
+	}
+	.header{
+	 background-color: rgb(138, 43, 226);
+	 width: 100%;
+	 color: white;
+	 padding: 20px;
+	}
+	.header a{
+	color: white;
+	}
+	.box-container{
+	width: 40%
+	}
+	.box{
+	align-items: center;
+	padding: 20px;
+	width:450px;
+	}
+	.topGreyBox{
+	
+	background-color:grey;
+	text-align:left;
+	}
+	.whiteBox{
+	background-color: white;
+	text-align: center;
+	}
+	.bottomGreyBox{
+	background-color:grey;
+	text-align: center;
+	}
+	.grid{
+	display: grid;  
+	grid-template-columns: auto auto auto auto;
+	padding :10px; 
+	border: 1px solid grey;
+	padding-left: 10%;
+	padding-right: 10%;
+	}
+	.grid-item{
+	text-align:left;
+	}
+	.account-display {
+	 align-self: flex-start;
+      text-align: left;
+      padding-left:31.5%;
+      font-size: 20px;
+      
+}
+</style>
+</head>
+<body>
+<div class="header">
+<div style="float: left; font-size: 20px">JoesStock</div>
+<div style="float: right;">
+<a href="LoggedinHome.html">Home/Search</a>
+<a href="PortfolioPage.html">Portfolio</a>|
+<a href="LoginRegister.html" onclick="logoutFunction()">Logout</a>
+</div>
+<div style="clear: both;"></div>
+</div>
+<br>
+	<div class="account-display" id=accountDisplay></div>
+	<div class="box-container">
+	<div class="box">
+	<div id=stockListDisplay></div>
+	<div id="ErrorDisplay"></div>
+	</div>
+	</div>
+<script>
+let globalPortfolios= [];
+let totalStockValue = 0;
+const stockListHTML = `
+	<div class="topGreyBox">
+	<div id="tickerDisplay{index}"></div>
+	</div>
+	
+	<div class="whiteBox">
+	<div class="grid">
+	<div class="grid-item">Quantity:</div>
+	<div class="grid-item" id="quantityDisplay{index}"></div>
+	<div class="grid-item">Change:</div>
+	<div class="grid-item" id="changeDisplay{index}"></div>
+	<div class="grid-item">Avg.Cost/Share:</div>
+	<div class="grid-item" id="avgCostShareDisplay{index}"></div>
+	<div class="grid-item">Current Price:</div>
+	<div class="grid-item" id="currentPriceDisplay{index}"></div>
+	<div class="grid-item">Total Cost:</div>
+	<div class="grid-item" id="totalCostDisplay{index}"></div>
+	<div class="grid-item">Market Value:</div>
+	<div class="grid-item" id="marketValueDisplay{index}"></div>
+	</div>
+	</div>
+	
+	<div class="bottomGreyBox">
+	<form id="userAction{index}" name="userAction{index}">
+        <label for="Quantity{index}">Quantity:</label>
+        <input type="number" name="Quantity" id="Quantity{index}" min="1" required><br>
+        <label for="buyAction{index}">Buy</label>
+        <input type="radio" id="buyAction{index}" name="tradeAction{index}" value="buy" required>
+        <label for="sellAction{index}">Sell</label>
+        <input type="radio" id="sellAction{index}" name="tradeAction{index}" value="sell"><br>
+        <button type="submit" id="submitbutton{index}" onclick="tradeActionJS({index}, event)">Submit</button>
+    </form>
+	</div>
+	<div id="debug{index}"></div>
+	<br>
+	<br>
+`;
+	
+	printBalance(event);
+	const stockListDisplay = document.getElementById('stockListDisplay');
+	 let baseURL = window.location.origin + "/Assignment4/";
+	 var url = new URL("TradeServlet", baseURL);
+	 fetch(url)
+	    .then(response => {
+	    	if (!response.ok) {
+	            throw new Error('Server response failed: ' + response.statusText);
+	        }
+	    	return response.json();
+	    })
+	    .then((portfolios) => {
+	    	console.log("Response JSON: "+portfolios);
+	    	globalPortfolios=portfolios;
+	    	portfolios.forEach((portfolio, index) => {
+	            console.log("Portfolio " + index + ": ", portfolio);
+	            console.log("Ticker: ", portfolio.ticker);
+	            console.log("numStock: ", portfolio.numStock);
+	            let localHTML = stockListHTML.replace(/{index}/g, index);  //citation replace() from https://www.w3schools.com/jsref/jsref_replace.asp
+	            stockListDisplay.innerHTML += localHTML;
+	            
+	            let numStock=portfolio.numStock;
+	            document.getElementById(`quantityDisplay${index}`).innerHTML=portfolio.numStock;
+	            document.getElementById(`avgCostShareDisplay${index}`).innerHTML =portfolio.price;
+	            document.getElementById(`totalCostDisplay${index}`).innerHTML =(portfolio.price *portfolio.numStock).toFixed(2);
+	            
+	            //current Price Display
+	            searchPriceByTicker(portfolio.ticker)
+	            .then(curPrice=>{
+	            	console.log("currentPrice: ", curPrice);
+	            	let additionValue=curPrice*numStock;
+	            	totalStockValue+= parseFloat(additionValue);
+	            	printBalance(event);
+	            	document.getElementById(`currentPriceDisplay${index}`).innerHTML = curPrice;
+	            	document.getElementById(`marketValueDisplay${index}`).innerHTML = (curPrice*numStock).toFixed(2);
+	            })
+	            .catch(error=>{
+	            console.log('Request failed', error);
+	            });
+	          //change Display
+	            searchChangeByTicker(portfolio.ticker)
+	            .then(change=>{
+	            	console.log("change: ", change);
+	            	changeDsiplay(change,index);
+	            })
+	            .catch(error=>{
+	            console.log('Request failed', error);
+	            });
+	            searchCompanyByTicker(portfolio.ticker)
+	            .then(comapny=>{
+	            	console.log("comapny: ", comapny);
+	            document.getElementById(`tickerDisplay${index}`).innerHTML =portfolio.ticker+'-'+comapny;
+	            })
+	            .catch(error=>{
+		            console.log('Request failed', error);
+		            });
+	        });
+	    })
+	    .catch(function (error) {
+	        console.log('Request failed', error);
+	    });
+	 function printBalance(event){
+			
+			let baseURL = window.location.origin + "/Assignment4/";
+		    var url = new URL("TradeSellServlet", baseURL);
+		    fetch(url)
+	        .then(data => data.text())
+	     	 .then((text) => {
+	     		 let balance=parseFloat(text);
+	     		 console.log('balance fromn printBalance: '+text );
+	     		 console.log('totalStockValue: '+totalStockValue );
+	     		document.getElementById("accountDisplay").innerHTML ='My Portfolio'+'<br>'+'Cash Balance:' +balance.toFixed(2)+'<br>'+'Total Account Value:$'+(balance+totalStockValue).toFixed(2);
+	     		if(text == "login success"){
+	     			window.location.href = 'LoggedinHome.html';
+	     		}
+	   	 }).catch(function (error) {
+	     		console.log('request failed', error);
+	   	 });
+		}
+	 
+	 async function tradeActionJS(index,event){
+			event.preventDefault();
+			let price=0;
+			let ticker=globalPortfolios[index].ticker;
+			const quantity = document.getElementById(`Quantity${index}`).value;
+		    const buyActionChecked = document.getElementById(`buyAction${index}`).checked;
+			var action= buyActionChecked ? 'buy' : 'sell';
+			console.log('Action:', action, 'Quantity:', quantity);
+			
+			 let curPrice = await searchPriceByTicker(ticker);
+            price =parseFloat(curPrice);
+		
+			var params={
+					user_id: -2,
+					ticker: ticker,
+					numStock:quantity,
+					price: price,
+			}
+			let baseURL = window.location.origin + "/Assignment4/";
+		    console.log("Params:", params);
+		    console.log("User ID:", params.user_id);
+		    console.log("Ticker:", params.ticker);
+		    console.log("Number of Stocks:", params.numStock);
+		    console.log("Price:", params.price);
+			if(action=='buy'){
+			var url = new URL("TradeServlet", baseURL);
+			}
+			else{
+			var url = new URL("TradeSellServlet", baseURL);	
+			}
+			 console.log("URL: " + url);
+			 fetch(url, {
+			        method: "POST",         
+			        headers: {
+			            "Content-type": "application/json"  
+			        },
+			        body: JSON.stringify(params)
+			    })
+			    .then(response => {
+			    	if (!response.ok) {
+			            throw new Error('Server response failed: ' + response.statusText);
+			        }
+			    	console.log(response);
+			    	return response.json();
+			    }) 
+			    .then((json) => {
+		    	console.log("Response JSON: "+json);
+		    	
+		    	if('error' in json){
+		    	alert( json.error);	
+		    	}
+		    	else{
+		    	alert(json.msg);
+		    		}
+			    })
+			    .catch(error=> {
+			        console.log('Request failed', error);
+			    });
+		}
+	</script>
+	
+	
+	
+	<script>
+		
+	async function searchPriceByTicker(tic){
+		const ticker=tic;
+		const API_KEY= 'cohfcp9r01qrf6b2saqgcohfcp9r01qrf6b2sar0';
+		try {
+			//for QUote
+	        let response = await fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${API_KEY}`);
+	        let json = await response.json();
+	        let currentPrice=json.c;
+	        return currentPrice;
+		}
+	        catch (err) {
+	            console.error('Request failed', err);
+	            document.getElementById('ErrorDisplay').textContent = 'Fetch data error: ' + error.message;
+	        }
+	}
+	
+	async function searchCompanyByTicker(tic){
+		const ticker=tic;
+		const API_KEY= 'cohfcp9r01qrf6b2saqgcohfcp9r01qrf6b2sar0';
+		try {
+			
+	        let response = await fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${ticker}&token=${API_KEY}`);
+	        let json = await response.json();
+	        let company=json.name;
+	        return company;
+		}
+	        catch (err) {
+	            console.error('Request failed', err);
+	            document.getElementById('ErrorDisplay').textContent = 'Fetch data error: ' + error.message;
+	        }
+	}
+	
+	async function searchChangeByTicker(tic){
+		const ticker=tic;
+		const API_KEY= 'cohfcp9r01qrf6b2saqgcohfcp9r01qrf6b2sar0';
+		try {
+			
+	        let response = await fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${API_KEY}`);
+	        let json = await response.json();
+	        let change=json.d;
+	        return change;
+		}
+	        catch (err) {
+	            console.error('Request failed', err);
+	            document.getElementById('ErrorDisplay').textContent = 'Fetch data error: ' + error.message;
+	        }
+	}
+	function changeDsiplay(change, index){
+		if(change<0){
+    	 	document.getElementById(`changeDisplay${index}`).style.color='red';
+    	 	document.getElementById(`changeDisplay${index}`).innerHTML='▼'+change;
+    	 	}
+    	 	else if(change==0){
+    	 		document.getElementById(`changeDisplay${index}`).style.color='black';
+        	 	document.getElementById(`changeDisplay${index}`).innerHTML='-'+change;	
+    	 	}
+    	 	else{
+    	 	document.getElementById(`changeDisplay${index}`).style.color='green';	
+    	 	document.getElementById(`changeDisplay${index}`).innerHTML='▲'+change;
+    	 	}
+	}
+	
+	function logoutFunction(){
+		alert("You've Logout");
+		let baseURL = window.location.origin + "/Assignment4/";
+		var url = new URL("LogoutServlet", baseURL);
+		fetch(url, {
+		    method: 'POST'
+		}).then(() => {
+		    console.log('Session ended on server');
+		}).catch(err => console.error('Logout failed', err));
+	}
+	
+	
+	
+	</script>
+	
+	
+</body>
+</html>

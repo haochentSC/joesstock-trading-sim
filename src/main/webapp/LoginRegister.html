@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>Login and Register Page</title>
+
+
+<style>
+body{
+  font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+	.header{
+	 background-color: rgb(138, 43, 226);
+	 width: 100%;
+	 color: white;
+	 padding: 20px;
+	}
+	.header a{
+	color: white;
+	}
+	.pageContainer{
+	display: flex;
+  justify-content:  space-around;
+  align-items: stretch;
+  width: 100%;
+  gap: 100px;
+	}
+	.section{
+	flex: 1;
+	display: flex;
+    flex-direction: column;
+    align-items: center;
+	}
+</style>
+</head>
+<body>
+<div class="header">
+<div style="float: left;">JoesStock</div>
+<div style="float: right;">
+<a href="LoginRegister.html">Login/Register</a>|
+<a href="Home.html">Home</a>
+</div>
+<div style="clear: both;"></div>
+</div>
+<div class="pageContainer">
+<div class ="section">
+<h2>Login</h2>
+<form name="login" id="login" onsubmit="validateUsernameAndPassword(event)">
+<label for="login_username">Username:</label><br>
+<input type="text" id="login_username" name="username" required><br>
+<label for="login_uPassword">Password:</label><br>
+<input type="text" id="login_uPassword" name="uPassword" required><br>
+<input type="reset" value="Reset"> <input type="submit" value="Submit">
+<div id="loginMsg"></div>
+</form>
+</div>
+<div class ="section">
+<h2>Register</h2>
+<form name="register" id="register" onsubmit="submitRegister(event)">
+<label for="email">Email:</label><br>
+<input type="email" id="email" name="email" required><br>
+<label for="username">Username:</label><br>
+<input type="text" id="username" name="username" required><br>
+<label for="uPassword">Password:</label><br>
+<input type="text" id="uPassword" name="uPassword" required><br>
+<label for="confirmPassword">Confirm Password:</label><br>
+<input type="text" id="confirmPassword" name="confirmPassword" required><br>
+<input type="reset" value="Reset"> <input type="submit" value="Submit">
+<div id="registrationDisplay"></div>
+<div id="ErrorDisplay"></div>
+</form>
+<div id="emailDisplay"></div>
+<div id="usernameDisplay"> </div>
+<div id="passwordDisplay"></div>
+</div>
+</div>
+<script>
+function submitRegister(event) {
+    event.preventDefault(); // This line code from: https://www.w3schools.com/jsref/event_preventdefault.asp
+    console.log("Form submission initiated");
+
+    let baseURL = window.location.origin + "/Assignment4/";
+    var url = new URL("RegisterServlet", baseURL);
+    var uPassword = document.getElementById("uPassword").value;
+    var confirmPassword=document.getElementById("confirmPassword").value;
+    if(uPassword != confirmPassword){
+    	alert("Password not maching");
+    	return;
+    }
+    var params = {
+    	email: document.getElementById("email").value,
+    	username: document.getElementById("username").value,
+        uPassword: uPassword,
+        balance: 50000.0,
+    };
+
+    console.log("URL: " + url);
+    fetch(url, {                         //cite:Code fecth Post with Json configuration from https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch
+        method: "POST",         
+        headers: {
+            "Content-type": "application/json" 
+        },
+        body: JSON.stringify(params)
+    })
+    .then(response => {
+    	if (!response.ok) {
+            throw new Error('Server response failed: ' + response.statusText);
+        }
+    	console.log(response);
+    	return response.json();
+    })
+    .then((json) => {
+    	console.log("Response JSON: "+json);
+    	
+    	if('error' in json){
+    	document.getElementById('ErrorDisplay').innerHTML = json.error;	
+    	}
+    	else{
+        document.getElementById('registrationDisplay').innerHTML='Register successs!';
+    	}
+       
+    })
+   
+ 	.catch(error=> {
+        console.log('Request failed', error);
+    });
+    console.log("Form submission complete");
+}
+</script>
+<script>
+function validateUsernameAndPassword(event){
+	 event.preventDefault(); 
+	 let baseURL = window.location.origin + "/Assignment4/";
+	    var url = new URL("RegisterServlet", baseURL);
+	    var params = {
+	    		login_username: document.getElementById("login_username").value,
+	    		login_uPassword: document.getElementById("login_uPassword").value,
+	        };
+	    url.search = new URLSearchParams(params).toString();
+	    fetch(url)
+        .then(data => data.text())
+     	 .then((text) => {
+     		document.getElementById("loginMsg").innerHTML = text;
+     		if(text == "login success"){
+     			window.location.href = 'LoggedinHome.html';
+     		}
+   	 }).catch(function (error) {
+     		console.log('request failed', error)
+   	 });
+	    
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Home Page</title>
+<style>
+body{
+  font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.5;
+}	
+	.header{
+	 background-color: rgb(138, 43, 226);
+	 width: 100%;
+	 color: white;
+	 padding: 20px;
+	}
+	.header a{
+	color: white;
+	}
+      #SearchStock{
+      text-align: center;
+      }
+      .container{
+  	  width: 100%;
+      }
+      .sectionStockAndPrice{
+      text-align: center;
+      }
+      #tickerTitleDisplay, #CompanyInformationTitleDisplay{
+      font-size: 20px;
+      }
+      #searchStock input[type="text"]{
+      font-size:20px;
+      padding:10px;
+      width:300px;
+      }
+      #searchStock button{
+      background-color:rgb(138, 43, 226);
+      border: none;
+      font-size:20px;
+      }
+	</style>
+</head>
+<body>
+
+<div class="header">
+<div style="float: left; font-size: 20px">JoesStock</div>
+<div style="float: right;">
+<a href="LoginRegister.html">Login/Register</a>|
+<a href="Home.html">Home</a>
+</div>
+<div style="clear: both;"></div>
+</div>
+
+<div class="container">
+<div class="sectionStockAndPrice">
+<div id="tickerTitleDisplay"></div> 
+<div id="stockNameDisplay"></div> 
+<div id="summaryTitleDisplay"></div>
+ 
+<div id="PriceSummaryDisplay"></div> 
+
+<div id="CompanyInformationTitleDisplay"></div>
+</div>
+
+<div id="CompanyInformationDisplay"></div>
+<div id="ErrorDisplay"></div>
+</div>
+<form id="searchStock">
+	<br><br><br><br><br><br><br><br><br><br>
+	<div style="text-align: center;font-size: 40px">SEARCH STOCKS</div>
+	<br>
+	<label for="search"></label><br>
+	<input type="text" name="search" id="search" placeholder="Enter stock ticker:...">
+	<button type="submit" onclick="searchStock(event)">Search</button>
+</form>
+
+<script>
+async function searchStock(event) {
+	event.preventDefault();
+	 const ticker = document.getElementById("search").value.toUpperCase();
+	 const API_KEY= 'cohfcp9r01qrf6b2saqgcohfcp9r01qrf6b2sar0';
+    try {
+
+        let response = await fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${API_KEY}`);
+       
+        let json = await response.json();
+        console.log("Response JSON QUOTE:", json);
+        let hp = json.h;
+        let lp = json.l;
+        let op = json.o;
+        let cp = json.pc;
+        response = await fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${ticker}&token=${API_KEY}`);
+        let change=json.d;
+        if(change==null){
+        alert("Ticker not found! Please enter valid ticker.");
+        return;
+        }
+        json = await response.json();
+        console.log("Response JSON company_profile:", json);
+        let ipo = json.ipo;
+        let mc = json.marketCapitalization;
+        let so = json.shareOutstanding;
+        let web = json.weburl;
+        let phone = json.phone;
+        let exchange = json.exchange;
+        let name = json.name;
+        document.getElementById('searchStock').style.display = 'none';
+	 	document.getElementById('stockNameDisplay').innerHTML = name+'<br>'+ exchange+'<br>';
+	 	document.getElementById('tickerTitleDisplay').innerHTML =ticker+'<br>';
+	 	document.getElementById('summaryTitleDisplay').innerHTML='<br>'+'Summary'+'<br>'+'<hr style="border: 0; height: 1px; background-color: grey;">';
+	 	document.getElementById('PriceSummaryDisplay').innerHTML ='High Price: '+hp+'<br>' + 'Low Price: '+lp+'<br>'
+	 	+'Open Price: '+op+'<br>'+'Close Price: '+cp;
+	 	document.getElementById('CompanyInformationTitleDisplay').innerHTML='<br>'+'<hr style="border: 0; height: 1px; background-color: grey;">'+'<br>'+'Company Information'+'<br>';
+	 	document.getElementById('CompanyInformationDisplay').innerHTML ='IPO Date: '+ipo+'<br>'+'Market Cap($M): '+mc+
+	 	'<br>'+'Share Outstanding: '+so +'<br>'+'Website: '+web+'<br>'+'Phone: '+phone;
+    } catch (errr) {
+        console.error('Request failed', err);
+        document.getElementById('ErrorDisplay').textContent = 'Fetch data error: ' + error.message;
+    }
+}
+
+</script>
+</body>
+</html>
